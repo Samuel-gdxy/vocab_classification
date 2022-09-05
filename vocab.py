@@ -1,40 +1,59 @@
 import pandas as pd
-import numpy as np
 import openpyxl
-from sklearn import preprocessing
 
-path = './vocab_All.xlsx'
-xls = pd.ExcelFile(path)
-wb = openpyxl.load_workbook(path)
-for sheet in wb.sheetnames:
-    ws = wb[sheet]
+path = './vocab_All v2.xlsx'
 
-    df = pd.read_excel(xls, sheet)
-    # get frequency
-    x = df['frequency'].values.reshape(-1,1)
+def get_frequency_and_margin(path):
+    xls = pd.ExcelFile(path)
+    results = ""
+    max_freqs = []
+    min_freqs = []
 
-    # normalize frequency
-    # min_max_scaler = preprocessing.MinMaxScaler()
-    # x_scaled = min_max_scaler.fit_transform(x)
-    # df2 = pd.DataFrame(x_scaled).values
-    # ws["I1"].value = 'norm_freq'
-    # for i in range(len(df2)):
-    #     ws["I"+str(i+2)].value = df2[i][0]
+    for sheet in xls.sheet_names:
+        df = pd.read_excel(xls, sheet)
+        # get frequency
+        x = df['frequency'].values
+        max_freq = x.max()
+        min_freq = x.min()
+        # get margin
+        common = f'{max_freq*0.6:.0f} to {max_freq}'
+        normal = f'{max_freq*0.25+1:.0f} to {max_freq*0.6-1:.0f}'
+        rare = f'{min_freq} to {max_freq*0.25:.0f}'
+        # get result
+        result = f'{sheet}: Min:{min_freq}, Max:{max_freq}, Common:{common}, Normal:{normal}, Rare:{rare}\n'
+        results = results + result
+        max_freqs.append(max_freq)
+        min_freqs.append(min_freq)
 
-    # classify classes
-    ws["J1"].value = 'class'
-    for i in range(ws.max_row-1):
-        freq = ws["I"+str(i+2)].value
-        if freq >= 0.6:
-            ws["J"+str(i+2)].value = "common"
-        elif freq <= 0.25:
-            ws["J"+str(i+2)].value = "master"
-        else:
-            ws["J"+str(i+2)].value = "in-depth"
+    return results, max_freqs, min_freqs
 
+def record_frequency_and_margin(path):
+    results, max_freq, min_freq = get_frequency_and_margin(path)
+    with open('distribution and margin.txt', 'w') as f:
+        f.write(results)
 
-wb.save(path)
+def classify(path):
+    results, max_freqs, min_freqs = get_frequency_and_margin(path)
+    wb = openpyxl.load_workbook(path)
+    count = 0
+    for sheet in wb.sheetnames:
+        ws = wb[sheet]
 
-#     print(f'{sheet}: Min:{col.min()}, Max:{col.max()}')
+        # classify classes
+        for i in range(ws.max_row-1):
+            freq = ws["C"+str(i+2)].value
+            if freq >= 0.6*max_freqs[count]:
+                # common
+                ws["B"+str(i+2)].value = 1
+            elif freq <= 0.25*max_freqs[count]:
+                # rare
+                ws["B"+str(i+2)].value = 3
+            else:
+                # normal
+                ws["B"+str(i+2)].value = 2
+        count = count + 1
 
+    wb.save(path)
+
+classify(path)
 
