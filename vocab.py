@@ -44,5 +44,10 @@ def classify(path):
         with pd.ExcelWriter(xls, mode='a', if_sheet_exists='replace', engine="openpyxl") as writer:
             df.to_excel(writer, sheet_name=sheet, index=False)
 
+
+def sort_and_classify(path):
+    sort(path)
+    classify(path)
+
 path = './vocab_All v2.xlsx'
-classify(path)
+sort_and_classify(path)
