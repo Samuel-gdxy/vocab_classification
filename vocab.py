@@ -1,35 +1,4 @@
 import pandas as pd
-import openpyxl
-
-
-def get_frequency_and_margin(path):
-    xls = pd.ExcelFile(path)
-    results = ""
-    max_freqs = []
-    min_freqs = []
-
-    for sheet in xls.sheet_names:
-        df = pd.read_excel(xls, sheet)
-        # get frequency
-        x = df['frequency'].values
-        max_freq = x.max()
-        min_freq = x.min()
-        # get margin
-        common = f'{max_freq*0.6:.0f} to {max_freq}'
-        normal = f'{max_freq*0.25+1:.0f} to {max_freq*0.6-1:.0f}'
-        rare = f'{min_freq} to {max_freq*0.25:.0f}'
-        # get result
-        result = f'{sheet}: Min:{min_freq}, Max:{max_freq}, Common:{common}, Normal:{normal}, Rare:{rare}\n'
-        results = results + result
-        max_freqs.append(max_freq)
-        min_freqs.append(min_freq)
-
-    return results, max_freqs, min_freqs
-
-def record_frequency_and_margin(path):
-    results, max_freq, min_freq = get_frequency_and_margin(path)
-    with open('distribution and margin.txt', 'w') as f:
-        f.write(results)
 
 # sort excel rows by frequency
 def sort(path):
