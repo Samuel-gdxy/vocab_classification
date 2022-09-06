@@ -1,7 +1,6 @@
 import pandas as pd
 import openpyxl
 
-path = './vocab_All v2.xlsx'
 
 def get_frequency_and_margin(path):
     xls = pd.ExcelFile(path)
@@ -32,39 +31,49 @@ def record_frequency_and_margin(path):
     with open('distribution and margin.txt', 'w') as f:
         f.write(results)
 
+# sort excel rows by frequency
+def sort(path):
+    xls = pd.ExcelFile(path)
+    dfs = []
+    sheets = []
+    for sheet in xls.sheet_names:
+        df = pd.read_excel(xls, sheet)
+        # in small to large order
+        df = df.sort_values(by='frequency')
+        dfs.append(df)
+        sheets.append(sheet)
+    for i in range(len(sheets)):
+        df = dfs[i]
+        sheet = sheets[i]
+        # save dataframe to excel file
+        with pd.ExcelWriter(xls, mode='a', if_sheet_exists='replace', engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name=sheet, index=False)
+
+# classify vocab level
 def classify(path):
-    results, max_freqs, min_freqs = get_frequency_and_margin(path)
-    wb = openpyxl.load_workbook(path)
-    count = 0
-    for sheet in wb.sheetnames:
-        ws = wb[sheet]
-        ws.auto_filter.ref(filterColumn=("C"))
-        # # classify classes
-        # for i in range(ws.max_row-1):
-        #     freq = ws["C"+str(i+2)].value
-        #     if freq >= 0.6*max_freqs[count]:
-        #         # common
-        #         ws["B"+str(i+2)].value = 1
-        #     elif freq <= 0.25*max_freqs[count]:
-        #         # rare
-        #         ws["B"+str(i+2)].value = 3
-        #     else:
-        #         # normal
-        #         ws["B"+str(i+2)].value = 2
-        # count = count + 1
+    xls = pd.ExcelFile(path)
+    dfs = []
+    sheets = []
+    for sheet in xls.sheet_names:
+        df = pd.read_excel(xls, sheet)
+        rare_max = round(len(df) * 0.25)
+        common_max = round(len(df) * 0.6)
+        for index in df.index:
+            if index <= rare_max:
+                df.at[index, 'level'] = 1
+            elif index >= common_max:
+                df.at[index, 'level'] = 3
+            else:
+                df.at[index, 'level'] = 2
+        df = df.sort_values(by='vocab id')
+        dfs.append(df)
+        sheets.append(sheet)
+    for i in range(len(sheets)):
+        df = dfs[i]
+        sheet = sheets[i]
+        # save dataframe to excel file
+        with pd.ExcelWriter(xls, mode='a', if_sheet_exists='replace', engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name=sheet, index=False)
 
-    wb.save(path)
-
-xls = pd.ExcelFile(path)
-for sheet in xls.sheet_names:
-    df = pd.read_excel(xls, sheet)
-    # in small to large order
-    df = df.sort_values(by='frequency')
-    for i in range(len(df)):
-        if i <= len(df)*0.25:
-            df.at[i, 'level'] = 1
-        elif i >= len(df)*0.6:
-            df.at[i, 'level'] = 3
-        else:
-            df.at[i, 'level'] = 2
-    df.to_excel(xls, sheet_name=sheet)
+path = './vocab_All v2.xlsx'
+classify(path)
